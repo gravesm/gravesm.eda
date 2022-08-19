@@ -1,0 +1,14 @@
+---
+- name: Cloudtrail driven remediation
+  hosts: localhost
+  sources:
+    - name: Simulated cloudtrail source
+      gravesm.eda.cloudtrail:
+        state_file: "state.json"
+        queue: "ansible-events-queue"
+  rules:
+    - name: Update AWS resource
+      condition: +event.Arn
+      action:
+        run_playbook:
+          name: restore.yml
