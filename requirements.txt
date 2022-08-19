@@ -1,0 +1,4 @@
+aiofiles==0.8.0
+boto3==1.24.52
+botocore==1.27.52
+PyYAML==6.0

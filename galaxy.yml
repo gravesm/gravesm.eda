@@ -1,0 +1,8 @@
+namespace: gravesm
+name: eda
+readme: README.md
+authors:
+  - Mike Graves (https://github.com/gravesm)
+repository: https://github.com/gravesm/gravesm.eda
+license_file: LICENSE
+version: 0.0.1
