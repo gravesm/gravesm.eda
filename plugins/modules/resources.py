@@ -16,7 +16,7 @@ ARG_SPEC = {
 
 def main():
     module = AnsibleModule(argument_spec=ARG_SPEC)
-    client = AwsClient(**module.params.get("connection"))
+    client = AwsClient(**module.params.get("connection") or {})
     result = run(
         module.params.get("resources", []),
         module.params.get("current_state", {}),

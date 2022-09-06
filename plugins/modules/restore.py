@@ -18,7 +18,7 @@ def find_by_arn(arn, state):
 
 def main():
     module = AnsibleModule(argument_spec=ARG_SPEC)
-    conn = module.params.get("connection", {})
+    conn = module.params.get("connection") or {}
     client = AwsClient(**conn)
     event = module.params.get("event")
     resource = find_by_arn(event["Arn"], module.params.get("current_state", {}))

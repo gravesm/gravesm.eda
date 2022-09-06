@@ -38,6 +38,10 @@ class Resource:
     def properties(self):
         return self._resource
 
+    @property
+    def read_only_properties(self):
+        return self.resource_type.read_only_properties
+
 
 class ResourceType:
     def __init__(self, schema):
@@ -50,6 +54,10 @@ class ResourceType:
     @property
     def identifier(self):
         return self._property_name(self._schema["primaryIdentifier"][0])
+
+    @property
+    def read_only_properties(self):
+        return [p.split("/")[-1] for p in self._schema["readOnlyProperties"]]
 
     def make(self, resource):
         return Resource(resource, self)
@@ -111,7 +119,8 @@ class AwsClient:
 
     def _update(self, existing, desired):
         patch = JsonPatch()
-        for k, v in desired.properties.items():
+        filtered = {k: v for k,v in desired.properties.items() if k not in desired.read_only_properties}
+        for k, v in filtered.items():
             if k not in existing.properties:
                 patch.append(op("add", k, v))
             elif v != existing.properties.get(k):
@@ -123,8 +132,7 @@ class AwsClient:
                 PatchDocument=str(patch),
             )
             self._wait(result["ProgressEvent"]["RequestToken"])
-            return self._get_resource(desired)
-        return existing
+        return self._get_resource(desired)
 
     def _delete(self, resource):
         result = self.client.delete_resource(
