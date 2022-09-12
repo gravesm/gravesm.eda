@@ -2,6 +2,7 @@ import functools
 import json
 
 import boto3.session
+import botocore
 
 
 class JsonPatch(list):
@@ -114,7 +115,10 @@ class AwsClient:
         result = self.client.create_resource(
             TypeName=resource.type_name, DesiredState=json.dumps(resource.properties)
         )
-        self._wait(result["ProgressEvent"]["RequestToken"])
+        try:
+            self._wait(result["ProgressEvent"]["RequestToken"])
+        except botocore.exceptions.WaiterError as e:
+            raise Exception(e.last_response["ProgressEvent"]["StatusMessage"])
         return self._get_resource(resource)
 
     def _update(self, existing, desired):

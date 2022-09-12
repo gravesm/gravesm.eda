@@ -6,7 +6,8 @@ import aiofiles
 
 def arn_in(arn, state):
     for k, v in state.items():
-        return v.get("Properties", {}).get("Arn") == arn
+        if v.get("Properties", {}).get("Arn") == arn:
+            return True
 
 
 async def main(queue, args):
