@@ -5,15 +5,8 @@ from typing import Any, Dict, List
 import boto3.session
 import botocore
 
-import logging
-logging.basicConfig(filename='/Users/alinabuzachis/dev/example.log', level=logging.DEBUG)
-logger = logging.getLogger("test")
-logger.setLevel(logging.DEBUG)
-ch = logging.StreamHandler()
-formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - " "%(message)s")
-ch.setFormatter(formatter)
-logger.addHandler(ch)
 
+ResourceType = Any
 
 
 class JsonPatch(list):
@@ -27,7 +20,7 @@ def op(operation: str, path: str, value: str) -> Dict:
 
 
 class Resource:
-    def __init__(self, resource, resource_type) -> None:
+    def __init__(self, resource: Dict, resource_type: ResourceType) -> None:
         self.resource_type = resource_type
         self._resource = resource
 
@@ -47,21 +40,17 @@ class Resource:
         }
 
     @property
-    def properties(self):
+    def properties(self) -> Dict:
         return self._resource
 
     @property
-    def read_only_properties(self):
-        logger.debug("read_only_properties")
-        logger.debug(self.resource_type.read_only_properties)
+    def read_only_properties(self) -> List[str]:
         return self.resource_type.read_only_properties
 
 
 class ResourceType:
     def __init__(self, schema: Dict) -> None:
         self._schema = schema
-        logger.debug("self._schema")
-        logger.debug(self._schema)
 
     @property
     def type_name(self) -> Dict:
@@ -85,12 +74,13 @@ class ResourceType:
 class Discoverer:
     def __init__(self, session: Any) -> None:
         self.client = session.client("cloudformation")
-        logger.debug("type(self.client)")
-        logger.debug(type(self.client))
 
     @functools.cache
     def get(self, type_name: str) -> ResourceType:
-        result = self.client.describe_type(Type="RESOURCE", TypeName=type_name)
+        try:
+            result = self.client.describe_type(Type="RESOURCE", TypeName=type_name)
+        except self.client.exceptions.TypeNotFoundException as e:
+            raise Exception(e, "Invalid TypeName")
         return ResourceType(json.loads(result["Schema"]))
 
 
@@ -120,7 +110,7 @@ class AwsClient:
             result = Resource({}, r_type)
         return result.resource
 
-    def _get_resource(self, resource: type[Resource]) -> Resource:
+    def _get_resource(self, resource: Resource) -> Resource:
         result = self.client.get_resource(
             TypeName=resource.type_name, Identifier=resource.identifier
         )
@@ -128,7 +118,7 @@ class AwsClient:
             json.loads(result["ResourceDescription"]["Properties"])
         )
 
-    def _create(self, resource: type[Resource]) -> Resource:
+    def _create(self, resource: Resource) -> Resource:
         result = self.client.create_resource(
             TypeName=resource.type_name, DesiredState=json.dumps(resource.properties)
         )
@@ -138,7 +128,7 @@ class AwsClient:
             raise Exception(e.last_response["ProgressEvent"]["StatusMessage"])
         return self._get_resource(resource)
 
-    def _update(self, existing: type[Resource], desired: type[Resource]) -> Resource:
+    def _update(self, existing: Resource, desired: Resource) -> Resource:
         patch = JsonPatch()
         filtered = {k: v for k,v in desired.properties.items() if k not in desired.read_only_properties}
         for k, v in filtered.items():
@@ -155,14 +145,14 @@ class AwsClient:
             self._wait(result["ProgressEvent"]["RequestToken"])
         return self._get_resource(desired)
 
-    def _delete(self, resource: type[Resource]) -> Dict:
+    def _delete(self, resource: Resource) -> Resource:
         result = self.client.delete_resource(
             TypeName=resource.type_name, Identifier=resource.identifier
         )
         self._wait(result["ProgressEvent"]["RequestToken"])
         return resource
 
-    def _wait(self, token: str):
+    def _wait(self, token: str) -> None:
         self.client.get_waiter("resource_request_success").wait(
             RequestToken=token,
             WaiterConfig={

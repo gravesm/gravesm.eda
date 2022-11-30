@@ -17,7 +17,7 @@
             }
          ]
       },
-      "Arn": "arn:aws:iam::721066863947:role/eda-test-role",
+      "Arn": "arn:aws:iam::123456789012:role/eda-test-role",
       "RoleId": "AROA2PYXPFVF3SXSYEPHJ"
    }
 }

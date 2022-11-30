@@ -79,6 +79,24 @@ def discoverer():
     return instance_discoverer
 
 
+def test_discoverer(discoverer, mock_resource_type):
+    result = discoverer.get("AWS::IAM::Role")
+    assert isinstance(result, ResourceType)
+    assert result.type_name == mock_resource_type.type_name
+    assert result.identifier == mock_resource_type.identifier
+    assert result.read_only_properties == mock_resource_type.read_only_properties
+
+
+def test_discoverer_invalid_type(discoverer, mock_resource_type):
+    discoverer.client.describe_type.side_effect = (
+        discoverer.client.exceptions.TypeNotFoundException
+    )
+    with pytest.raises(Exception) as e:
+        _result = discoverer.get("AWS::IMA::Role")
+
+    assert "Invalid TypeName" in str(e.value)
+
+
 def test_present_update_resource_no_diff(aws_client, mock_resource_type):
     aws_client.resources.get.return_value = mock_resource_type
     aws_client.client.get_resource.return_value = RESPONSE_GET
