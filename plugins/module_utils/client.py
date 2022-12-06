@@ -6,9 +6,6 @@ import boto3.session
 import botocore
 
 
-ResourceType = Any
-
-
 class JsonPatch(list):
     def __str__(self):
         return json.dumps(self)
@@ -20,7 +17,7 @@ def op(operation: str, path: str, value: str) -> Dict:
 
 
 class Resource:
-    def __init__(self, resource: Dict, resource_type: ResourceType) -> None:
+    def __init__(self, resource: Dict, resource_type: 'ResourceType') -> None:
         self.resource_type = resource_type
         self._resource = resource
 
@@ -53,7 +50,7 @@ class ResourceType:
         self._schema = schema
 
     @property
-    def type_name(self) -> Dict:
+    def type_name(self) -> str:
         return self._schema["typeName"]
 
     @property
@@ -90,7 +87,7 @@ class AwsClient:
         self.resources = Discoverer(self.session)
         self.client = self.session.client("cloudcontrol")
 
-    def present(self, resource: Dict) -> Resource:
+    def present(self, resource: Dict) -> Dict:
         r_type = self.resources.get(resource["Type"])
         desired = r_type.make(resource["Properties"])
         try:
@@ -100,7 +97,7 @@ class AwsClient:
             result = self._create(desired)
         return result.resource
 
-    def absent(self, resource: Dict) -> Resource:
+    def absent(self, resource: Dict) -> Dict:
         r_type = self.resources.get(resource["Type"])
         desired = r_type.make(resource["Properties"])
         try:

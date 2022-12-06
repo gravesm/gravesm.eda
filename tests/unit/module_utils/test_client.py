@@ -73,9 +73,13 @@ def aws_client():
 
 @pytest.fixture(scope="module")
 def discoverer():
+    class NotFound(Exception):
+        pass
+
     instance_discoverer = Discoverer(Mock())
     instance_discoverer.client = MagicMock()
-    instance_discoverer.client.describe_type.return_value = {"Schema": SCHEMA}
+    instance_discoverer.client.describe_type.return_value = {"Schema": json.dumps(SCHEMA)}
+    instance_discoverer.client.exceptions.TypeNotFoundException = NotFound
     return instance_discoverer
 
 
@@ -87,7 +91,7 @@ def test_discoverer(discoverer, mock_resource_type):
     assert result.read_only_properties == mock_resource_type.read_only_properties
 
 
-def test_discoverer_invalid_type(discoverer, mock_resource_type):
+def test_discoverer_invalid_type(discoverer):
     discoverer.client.describe_type.side_effect = (
         discoverer.client.exceptions.TypeNotFoundException
     )
